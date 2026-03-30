@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export const geminiModel = genAI.getGenerativeModel({
-  model: "gemma-3-12b-it",
+  model: "gemini-2.5-flash",
   generationConfig: {
     // responseMimeType: "application/json" removed as it's not supported by gemma models
   },
