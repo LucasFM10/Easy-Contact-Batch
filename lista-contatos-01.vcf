@@ -1,0 +1,24 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:João Silva
+TEL:(83) 98888-7777
+NOTE:Paróquia Santo Antônio - Círculo Amarelo
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Maria Oliveira
+TEL:(83) 91111-2222
+NOTE:Paróquia São José - Círculo Verde
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Pedro Santos
+TEL:(83) 93333-4444
+NOTE:Paróquia N. Sra. de Fátima - Círculo Vermelho
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Ana Costa
+TEL:(83) 95555-6666
+NOTE:Paróquia Santo Antônio - Círculo Azul
+END:VCARD
