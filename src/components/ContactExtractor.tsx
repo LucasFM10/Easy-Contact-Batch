@@ -225,8 +225,30 @@ export default function ContactExtractor() {
 
   const exportVCard = () => {
     const vcardContent = data.map(c => {
-      const formattedName = applyNameRules(c.nome)
-      return `BEGIN:VCARD\nVERSION:3.0\nFN:${formattedName}\nTEL:${c.telefone}\nNOTE:Paróquia ${c.paroquia} - Círculo ${c.circulo}\nEND:VCARD`
+      const formattedName = applyNameRules(c.nome) || "Contato Sem Nome"
+      
+      // Extrair partes do nome para o componente N (LastName;FirstName;MiddleName;Prefix;Suffix)
+      const nameParts = formattedName.trim().split(/\s+/)
+      const lastName = nameParts.length > 1 ? nameParts.pop() || "" : ""
+      const firstName = nameParts.join(" ")
+      
+      // Montar a anotação (note) com todas as informações disponíveis usando quebra de linha literal do vCard (\n)
+      const notas = [
+        c.paroquia ? `Paróquia: ${c.paroquia}` : "",
+        c.circulo ? `Círculo: ${c.circulo}` : "",
+        c.ano ? `Ano: ${c.ano}` : ""
+      ].filter(Boolean).join("\\n")
+      
+      // Especificação do VCF com campos requisitados (N, FN, TEL, NOTE)
+      return [
+        "BEGIN:VCARD",
+        "VERSION:3.0",
+        `N:${lastName};${firstName};;;`,
+        `FN:${formattedName}`,
+        `TEL;TYPE=CELL,VOICE:${c.telefone || ""}`,
+        `NOTE:${notas || "Sem informações adicionais"}`,
+        "END:VCARD"
+      ].join("\n")
     }).join("\n")
     const blob = new Blob([vcardContent], { type: "text/vcard" })
     const url = URL.createObjectURL(blob)

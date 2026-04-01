@@ -10,47 +10,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 });
     }
 
-    const promptParts: any[] = [];
+    const allContacts: any[] = [];
 
-    // Add all files contents to the prompt parts for Gemini
+    // Extract contacts from each file sequentially to avoid ignoring images
     for (const file of files) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      promptParts.push({
-        inlineData: {
-          data: buffer.toString("base64"),
-          mimeType: file.type,
-        },
-      });
-    }
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const promptParts = [
+          {
+            inlineData: {
+              data: buffer.toString("base64"),
+              mimeType: file.type,
+            },
+          },
+          { text: EXTRACTION_PROMPT }
+        ];
 
-    // Add the extraction prompt at the end
-    promptParts.push({ text: EXTRACTION_PROMPT });
+        const result = await geminiModel.generateContent(promptParts);
+        const responseText = result.response.text();
+        console.log(`Gemini Raw Response for ${file.name}:`, responseText);
 
-    const result = await geminiModel.generateContent(promptParts);
+        // Robust JSON extraction for models without JSON mode
+        let cleanJson = responseText.trim();
+        const jsonMatch = cleanJson.match(/\[[\s\S]*\]/);
+        
+        if (jsonMatch) {
+          cleanJson = jsonMatch[0];
+        } else {
+          // Fallback: remove markdown blocks if regex fails to find clear array
+          if (cleanJson.startsWith("```json")) {
+            cleanJson = cleanJson.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+          } else if (cleanJson.startsWith("```")) {
+            cleanJson = cleanJson.replace(/^```\n?/, "").replace(/\n?```$/, "");
+          }
+        }
 
-    const responseText = result.response.text();
-    console.log("Gemini Raw Response (Gemma/Manual JSON):", responseText);
-
-    // Robust JSON extraction for models without JSON mode
-    let cleanJson = responseText.trim();
-    
-    // Extract the content within the first [ and the last ]
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      cleanJson = jsonMatch[0];
-    } else {
-      // Fallback: remove markdown blocks if regex fails to find clear array
-      if (cleanJson.startsWith("```json")) {
-        cleanJson = cleanJson.replace(/^```json\n?/, "").replace(/\n?```$/, "");
-      } else if (cleanJson.startsWith("```")) {
-        cleanJson = cleanJson.replace(/^```\n?/, "").replace(/\n?```$/, "");
+        const data = JSON.parse(cleanJson);
+        if (Array.isArray(data)) {
+          allContacts.push(...data);
+        }
+      } catch (fileError) {
+        console.error(`Extraction error for file ${file.name}:`, fileError);
+        // Continue processing other files even if one fails
       }
     }
 
-    const data = JSON.parse(cleanJson);
-    return NextResponse.json(data);
+    return NextResponse.json(allContacts);
   } catch (error: any) {
-    console.error("Extraction error:", error);
+    console.error("General API error:", error);
     return NextResponse.json({ error: error.message || "Falha ao extrair dados" }, { status: 500 });
   }
 }
